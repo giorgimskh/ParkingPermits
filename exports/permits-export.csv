@@ -1,0 +1,19 @@
+﻿Plate number,Owner,Permit type,Zone,Valid until,Days left,Payment,Status
+"AB-123-CD","Giorgi Beridze","Student","A",2027-06-30,237,Paid,Valid
+"BC-909-DE","Saba Chkheidze","Student","D",2027-01-31,87,Paid,Valid
+"EV-512-CH","Beka Japaridze","Guest","B",2026-11-30,0,Unpaid,Awaiting payment
+"FD-616-GH","Nino Kharadze","Guest","D",2026-11-28,23,Paid,Expires soon
+"GG-555-LL","Davit Lomidze","Staff","D",2027-12-31,421,Paid,Valid
+"HJ-404-KL","Salome Gogichaishvili","Student","B",2026-06-30,0,Paid,Expired
+"KT-456-MN","Nino Beridze","Staff","B",2027-12-31,421,Paid,Valid
+"KU-001-TS","Ketevan Abashidze","Student","A",2027-01-31,87,Paid,Valid
+"LR-148-TT","Tamar Jgharkava","Staff","A",2026-12-31,56,Paid,Valid
+"MK-777-SS","Irakli Tsiklauri","Guest","C",2026-10-15,0,Paid,Expired
+"NN-321-OP","Elene Kvaratskhelia","Student","C",2027-06-30,237,Paid,Valid
+"PT-250-QR","Nika Abashidze","Staff","C",2027-12-31,0,Unpaid,Awaiting payment
+"QQ-202-AA","Mariam Kapanadze","Student","A",2026-06-30,0,Paid,Expired
+"RS-642-UV","Zurab Kiknadze","Staff","B",2027-12-31,421,Paid,Valid
+"SM-733-RN","Giorgi Lomidze","Staff","D",2026-12-31,56,Paid,Valid
+"TB-789-XY","Levan Beridze","Guest","C",2026-11-20,15,Paid,Expires soon
+"WX-818-YZ","Luka Maisuradze","Guest","A",2026-11-10,5,Paid,Expires soon
+"ZZ-310-BK","Ana Gelashvili","Student","B",2027-01-31,0,Unpaid,Awaiting payment
