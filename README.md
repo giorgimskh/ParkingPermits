@@ -11,10 +11,8 @@ and look at a **drawn parking map** that shows which spots in each zone are take
 ## Contents
 1. [How to run it](#how-to-run-it)
 2. [Features](#features)
-3. [The database table](#the-database-table)
+3. [UML class diagram](#uml-class-diagram)
 4. [Rules the app enforces](#rules-the-app-enforces)
-5. [Project files](#project-files)
-6. [Manual test: Export to CSV](#manual-test-export-to-csv)
 
 ---
 
@@ -56,7 +54,7 @@ A search for **beridze** finds exactly three permits:
 ### Adding and editing a permit
 
 **+ New permit** opens an empty dialog. **Edit** (or a double-click on a row) opens the same dialog
-already filled in. A preview of the number plate updates as you type.
+already filled in. A parking-pass preview on the left updates as you type.
 **Enter** saves and **Esc** cancels.
 
 | Add | Edit |
@@ -90,31 +88,161 @@ A sample export of all 18 permits (as of 5 Nov 2026) is in [`exports/permits-exp
 
 ---
 
-## The database table
+## UML class diagram
 
-**Database:** `ParkingPermitsDb` · **Table:** `Permits`
+The database table `Permits` (in `ParkingPermitsDb`) and the classes of the project.
+Only the main members of the forms are shown.
 
-| Column      | Type          | Notes                                   |
-|-------------|---------------|-----------------------------------------|
-| Id          | INT IDENTITY  | primary key                             |
-| PlateNumber | NVARCHAR(20)  | searched · format `AB-123-CD`           |
-| OwnerName   | NVARCHAR(100) | searched · English first and last name  |
-| PermitType  | NVARCHAR(20)  | Student / Staff / Guest · the filter    |
-| Zone        | NVARCHAR(10)  | A / B / C / D                           |
-| ValidUntil  | DATE          | last day the permit can be used         |
-| IsPaid      | BIT           | whether the permit fee is paid          |
+```mermaid
+classDiagram
+    direction TB
 
-The `Permit` class also has **calculated properties** that are not stored in the database:
+    class Permits {
+        <<database table>>
+        Id : INT IDENTITY PK
+        PlateNumber : NVARCHAR[20]
+        OwnerName : NVARCHAR[100]
+        PermitType : NVARCHAR[20]
+        Zone : NVARCHAR[10]
+        ValidUntil : DATE
+        IsPaid : BIT
+        trg_Permits_PaidCannotBeUndone() trigger
+    }
 
-| Property | Meaning |
-|---|---|
-| `IsExpired` | the end date has passed |
-| `IsActive` | paid **and** not expired, so the permit can be used |
-| `TakesSpot` | not expired, so it holds a parking spot |
-| `DaysLeft` | days the permit can still be used (0 if expired or unpaid) |
-| `ExpiresSoon` | active and ends within 30 days |
-| `Validity` | Valid · Expires soon · Awaiting payment · Expired |
-| `Payment` | Paid · Unpaid |
+    class Permit {
+        +Id : int
+        +PlateNumber : string
+        +OwnerName : string
+        +PermitType : string
+        +Zone : string
+        +ValidUntil : DateTime
+        +IsPaid : bool
+        +/IsExpired : bool
+        +/IsActive : bool
+        +/TakesSpot : bool
+        +/DaysLeft : int
+        +/ExpiresSoon : bool
+        +/Validity : string
+        +/Payment : string
+    }
+
+    class PermitRepository {
+        -connectionString : string
+        -sortOrders : string[]
+        +Search(text, permitType, sortIndex) List~Permit~
+        +PlateExists(plateNumber, excludeId) bool
+        +CountTakenSpots(zone, excludeId) int
+        +Add(permit) void
+        +Update(permit) void
+        +Delete(id) void
+        -EscapeLikeText(text)$ string
+        -AddPermitParameters(command, permit) void
+    }
+
+    class ParkingLot {
+        <<static>>
+        +SpotsPerZone : int = 8$
+        +Zones : string[] = A, B, C, D$
+    }
+
+    class MainForm {
+        -repository : PermitRepository
+        -allPermits : List~Permit~
+        -searchResults : List~Permit~
+        -shownPermits : List~Permit~
+        -LoadPermits() void
+        -ShowSelectedStatusTab() void
+        -btnAdd_Click() void
+        -EditSelectedPermit() void
+        -btnDelete_Click() void
+        -btnExport_Click() void
+        -dgvPermits_CellFormatting() void
+        -ShowPage(page) void
+        ~GetStatusColor(permit)$ Color
+    }
+
+    class PermitForm {
+        -repository : PermitRepository
+        -permitId : int
+        +CurrentPermit : Permit
+        +PermitForm()
+        +PermitForm(permit)
+        -btnSave_Click() void
+        -ShowError(message, control) void
+        -pnlPreview_Paint() void
+    }
+
+    class SplashForm {
+        -tmrAnimation : Timer
+        +SplashForm()
+        -tmrAnimation_Tick() void
+        -SplashForm_Paint() void
+    }
+
+    class Program {
+        <<static>>
+        -Main()$ void
+    }
+
+    class GraphicsHelper {
+        <<static>>
+        +DrawLicensePlate()$ void
+        +DrawBadge()$ void
+        +DrawProgressRing()$ void
+        +DrawCar()$ void
+        +DrawParkingSign()$ void
+    }
+
+    class Palette {
+        <<static>>
+        colours of the whole app
+    }
+
+    class DetailsPalette {
+        <<static>>
+        colours of the details panel
+    }
+
+    class BufferedPanel
+    class CardPanel {
+        +SetCardColors(fill, border) void
+    }
+    class RoundedButton {
+        -fadeTimer : Timer
+        -hoverAmount : float
+    }
+
+    Form <|-- MainForm
+    Form <|-- PermitForm
+    Form <|-- SplashForm
+    Panel <|-- BufferedPanel
+    BufferedPanel <|-- CardPanel
+    Button <|-- RoundedButton
+
+    Program ..> SplashForm : shows first
+    Program ..> MainForm : runs
+    MainForm ..> PermitForm : opens for Add / Edit
+    MainForm --> "1" PermitRepository
+    PermitForm --> "1" PermitRepository
+    MainForm o-- "0..*" Permit : shows
+    PermitForm ..> Permit : creates
+    PermitRepository ..> Permit : reads and writes
+    PermitRepository ..> Permits : SQL with parameters
+    MainForm ..> ParkingLot
+    PermitForm ..> ParkingLot
+    MainForm *-- CardPanel
+    MainForm *-- RoundedButton
+    PermitForm *-- RoundedButton
+    MainForm ..> GraphicsHelper
+    PermitForm ..> GraphicsHelper
+    GraphicsHelper ..> Palette
+    MainForm ..> DetailsPalette
+```
+
+The calculated properties of `Permit`: **IsExpired** (end date has passed), **IsActive** (paid and not expired),
+**TakesSpot** (not expired, so it holds a spot), **DaysLeft** (0 if expired or unpaid), **ExpiresSoon**
+(active and ends within 30 days), **Validity** (Valid · Expires soon · Awaiting payment · Expired) and
+**Payment** (Paid · Unpaid).
 
 ---
 
@@ -138,41 +266,3 @@ The `Permit` class also has **calculated properties** that are not stored in the
 
 > **Expiring first / last:** permits that can be used now come first, sorted by end date,
 > then permits awaiting payment, then expired ones.
-
----
-
-## Project files
-
-| File | What is in it |
-|---|---|
-| `database.sql` | creates the database, the table and the trigger, and inserts 18 test permits |
-| `Permit.cs` | one row of the table, plus the calculated properties |
-| `PermitRepository.cs` | **all** the SQL: search, add, update, delete, plate and spot checks |
-| `ParkingLot.cs` | the zones and the number of spots per zone |
-| `MainForm.cs` | main window: list, buttons, grid colours, details panel |
-| `MainForm.Pages.cs` | page tabs, status tabs and the Overview page |
-| `MainForm.Map.cs` | the Parking map page |
-| `PermitForm.cs` | the Add / Edit dialog and its checks |
-| `SplashForm.cs` | the loading screen shown before the main window |
-| `GraphicsHelper.cs` | colours and drawing: icons, badges, number plate, ring, cars |
-| `Panels.cs` | `BufferedPanel` (no flicker) and `CardPanel` (white rounded card) |
-| `RoundedButton.cs` | button with rounded corners and a smooth hover effect |
-
----
-
-## Manual test: Export to CSV
-
-Everything else was tested automatically. The Windows **Save** dialog could not be, so check it by hand:
-
-| # | Do this | Expected result |
-|---|---------|-----------------|
-| 1 | Permits page, no search, tab **All** → **Export CSV** → save as `all.csv` on the Desktop | Green notice *"18 permits exported to all.csv."* (same number as *"Showing … permits"*) |
-| 2 | Open `all.csv` in Excel | Header row: Plate number, Owner, Permit type, Zone, Valid until, Days left, Payment, Status; one row per permit, each value in its own column |
-| 3 | Look at *Valid until* and *Days left* | Dates look like `2027-06-30`; expired and unpaid permits have 0 days left |
-| 4 | Search `beridze`, type **Staff**, export as `filtered.csv` | Only the shown row is saved (KT-456-MN) |
-| 5 | Click the **Expired** tab, export as `expired.csv` | Only the expired permits are saved |
-| 6 | Search `nothing-matches` → **Export CSV** | *"There are no rows to export."* and no Save dialog |
-| 7 | **Export CSV** → **Cancel** in the Save dialog | Nothing is saved and no green notice appears |
-| 8 | Keep `all.csv` open in Excel and export over it | *"The file could not be saved. Is it open in Excel?"*, and the app keeps working |
-
-Delete the test CSV files from the Desktop afterwards.
